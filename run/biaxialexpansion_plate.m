@@ -78,7 +78,6 @@ tic
 [Dm,Em] = setBsplineGrid_func(knotvectorU, knotvectorV, knotvectorW, uknotvectorU,uknotvectorV,uknotvectorW,param,param.maxlevel);
 toc
 
-
 %% Store level 1 control points
 disp('Compute control points at level 1 using Greville coordinates...');
 knotu = knotvectorU{1,1};
@@ -147,33 +146,22 @@ rresidual_total = [];
 
 % Loop over each refinement level
 disp('Loop over each refinement level...');
-% AdrianQ: does registration begin from scratch for every refinement level?
-% Aishwarya: This was what I was doing initially, restarting the grid, but
-% it was wrong, removed the line for reinitializing control grid at the
-% start of each refinement level
 pxx = Xvtk;
 pyy = Yvtk;
 pzz = Zvtk;
 figure
+
 for multilev = 0:1:param.maxlevel-1
     
     % this is not correct
     % only gradient of target is needed
     [DIITX,DIITY,DIITZ] = gradient(Img_target);
     
-    % confused about this line and the one below where Pm_old = Pm
-    % is Pm used in the THB_refinement function? if not, if it is
-    % just an output from the THB_refinement, do you really need this line?
-    % Aishwarya: removed the reinitialization part
-    %Pm = Pm_old; %Reinitialization of the control points done here
-    
-    %tic
     fprintf('Refinement at level %i...\n',multilev+1);
     if(multilev>0)
         [Em,Dm,Pm,ActiveNodes] = THB_Refinement(Em,Dm,Pm,knotvectorU, knotvectorV,knotvectorW,bf,CellGrad,meanGrad,param,multilev,ActiveNodes);
     end
-    %toc
-    
+
     disp('Collecting active elements, control points and basis functions...');
     [ac, bf, ACP, RHS,Em,Dm,ActiveNodes] = storeActiveElem(Em,Dm,Pm,multilev,ActiveNodes);
     
@@ -218,25 +206,9 @@ for multilev = 0:1:param.maxlevel-1
     for i=1:size(ActiveNodes,1)
         Node(ActiveNodes(i,1),4) = i;
     end
-    
-    
-    
-    % interpolate the intensity values of the source image at the gauss
-    % points stored in BIGX, BIGY, BIGZ
-    % AdrianQ: the statement is incorrect, we want to evaluate the source
-    % at the undeformed gauss points. I'm changing the name to be a little
-    % more clear
-    
+
     cII_SX = interp3(pixY, pixX, pixZ, Img_source_initial, BIGY, BIGX, BIGZ,'*linear',min(Img_target(:)));
-    
-    %cII2 = interpolateBsplineFunc_gausspts(Nx,Ny,Nz,PHI,BIGY, BIGX, BIGZ,Jm,Pm,Dm,phi_cp);
-    % AdrianQ: I dont know why you are clearing these, I think they might
-    % be used later on?
-    % Aishwarya: It is not used later, only deformed gauss points are used. Thus,
-    % clearing it to not use too much RAM
-    % clear('BIGX','BIGY','BIGZ');
-    %toc;
-    
+
     %% Start the image registration for each iteration
     disp('Starting the iteration loop for dynamic update of control points...');
     % start the iteration loop
@@ -278,23 +250,12 @@ for multilev = 0:1:param.maxlevel-1
         [BIGXX,BIGYY,BIGZZ,BIGMUX,BIGMUY,BIGMUZ,BIGMVX,BIGMVY,BIGMVZ,BIGMWX,BIGMWY,BIGMWZ] = computenewPoints_mex(Jm,ACP,PHI1,PHIU1,PHIV1,PHIW1,orderGauss);
         
         % interpolate the intensity and grdient at f(x) at the deformed positions of the gauss points
-        
-        % AdrianQ: interpolating the target image function at the deformed
-        % points T(Y)
+
         cII_TY = interp3(pixY, pixX, pixZ, Img_target, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
-        
-        % AdrianQ: interpolating the gradient of the target at Y
+
         cDII_TY_X = interp3(pixY, pixX, pixZ, DIITX,BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
         cDII_TY_Y = interp3(pixY, pixX, pixZ, DIITY, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
         cDII_TY_Z = interp3(pixY, pixX, pixZ, DIITZ, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
-        
-        % denominator of the fidelity term (g(x))
-        % AdrianQ: this I don't know what it is, what is this used for?
-        % Is it on the paper? This was never discussed
-        %Aishwarya: speed term to speed up near higher gradient regions.
-        %can remove it
-        
-        %denominate = sqrt((cDII_TY_X.^2) + (cDII_TY_Y.^2) + (cDII_TY_Z.^2)+ smallNumber); %g(x)
         
         % fidelity term in x, y, z directions
         Bterm1 = (cII_TY - cII_SX).*2.*cDII_TY_Y; %./denominate;
@@ -306,8 +267,7 @@ for multilev = 0:1:param.maxlevel-1
         
         % Now compute the integrals for each basis function in the support of the active cell.
         [RHS, RHS_image, RHS_reg, LRHS_reg, RHS_total, final_error] = compute_Integ_Domain_hyper_elastic_mex(Jm,img_error,Bterm1,Bterm2,Bterm3,BIGXX,BIGYY,BIGZZ,BIGMUX,BIGMUY,BIGMUZ,BIGMVX,BIGMVY,BIGMVZ,BIGMWX,BIGMWY,BIGMWZ,RHS,PHI1,PHIU1,PHIV1,PHIW1,param.mu, param.lambda, param.alpha, param.beta,Wu,Wv,Ww,H,cII_SX);
-        %RHS = compute_Integ_Domain(Jm,Bterm1,Bterm2,Bterm3,BIGMUX,BIGMUY,BIGMUZ,BIGMVX,BIGMVY,BIGMVZ,BIGMWX,BIGMWY,BIGMWZ,RHS,PHI1,PHIU1,PHIV1,PHIW1,lambda_1,lambda_1,Wu,Wv,Ww,H);
-        
+
         % apply dirichlet boundary condition on the control points at the
         % boundary
         RHS = bcondition3D(RHS);
@@ -332,71 +292,13 @@ for multilev = 0:1:param.maxlevel-1
             Pmlevel(index,:) = ACP(ilevel,1:3);
             Pm(level_b).pts = Pmlevel;
         end
+        
         %compute the new positions of the pixel coordiantes using the spatial
         %transformation function
         [pxx, pyy, pzz, F11, F22, F33, Jdet, strain_energy] = tripleIterLoop_mex(sizeImage, Pixel, Jm, ACP, Img_source,param.mu,param.lambda);
-        
-        %Using the new position of the pixels, compute the new moving image
-        % AdrianQ: this is not correct, why are you interpolating both?
-        % do we even need to interpolate? I don't think so, the above code
-        % already computes the source image at the undeformed Gauss points
-        % CII_SX; it also computes the image at the deformed Gauss points
-        % CII_TY, why are you recomputing the image? I don't think this is
-        % needed at all
-        %Img_source = interp3(pixY, pixX, pixZ, Img_source_initial,pyy,pxx,pzz,'*linear');
-        %Img_source(isnan(Img_source)) = min(Img_target(:));
-        
-        %Img_target = interp3(pixY, pixX, pixZ, Img_target_initial,pyy,pxx,pzz,'*linear');
-        %Img_target(isnan(Img_target)) = min(Img_target(:));
-        
-        %compute the image gradient
-        % AdrianQ: I also don't think this gradient is needed, you already
-        % have the gradient function above, I dont think that changes, only
-        % thing that changes is at which points you evaluate
-        %[DI1X,DI1Y,DI1Z] = gradient(Img_target);
-        
-        %compute the residual and RS value
-        % AdrianQ: the error can be integrated in the function that
-        % calculates the residual, it can also be approximated from CII_SX
-        % and CII_TY, which I know are not at the Gauss points but at the
-        % pixel locations, but I am confident that the error is the
-        % integral of (CII_TY-CII_SX).^2, if you want the error based on
-        % the pixels that is also fine, but I don't think you should be
-        % overwriting the original functions S() and T(), otherwise if you
-        % change the functions S() and T() then the algorithm is doing
-        % something different, it should be finding Y(X) such that
-        % T(Y)=S(X), that's what it should be doing, given fixed functions
-        % T() and S(), in the next few lines (and the previous ones) you
-        % are actually changing the functions themselves, no?
-        %Idiff2 = Img_source-Img_target;
-        %Idiff22 = (Idiff2).^2;
-        %Sum1 = sum(sum(sum(Idiff22,3),2),1);
-        %final_residual = sqrt(Sum1);
-        %RS_final = final_residual/residual_initial;
-        % Same as the way the residual is computed, but interpolating at
-        % the deformed pixels instead of deformed Gauss points
-        
+
         Img_target_reparameterized_at_pixels = interp3(pixY, pixX, pixZ, Img_target, pyy, pxx, pzz,'*linear',min(Img_target(:)));
-        %Idiff2 = Img_source-Img_target_reparameterized_at_pixels;
-        %Idiff22 = (Idiff2).^2;
-        %Sum1 = sum(sum(sum(Idiff22,3),2),1);
-        %final_residual = sqrt(Sum1);
-        %RS_final = final_residual/residual_initial;
-        
-        % AdrianQ
-        % IF what you want is the deformed image you can just use the
-        % original image values with the new pixel coordinates
-        %Img_source_deformed = array[pxx;pyy;pzz;Img_source]
-        % no interpolation needed, this is your new image, the same pixel
-        % intensity, just different pixel position
-        
-        % Note that this is how we compute the residual, we take a pixel,
-        % we see where it lands, we know that this pixel takes with it its
-        % intensity, we want to see if the target image has the same
-        % intensity at that point, that's why we do the T(Y), but the
-        % deformed source is simple the same intensities per pixels, just
-        % moved pixels
-        
+
         disp(sprintf('Iteration = %d, residual = %f',iterct_level, final_error));
         rs(iterct,1) = final_error;
         iter_reg(iterct,1) = norm_reg;
@@ -415,7 +317,7 @@ for multilev = 0:1:param.maxlevel-1
         save('post_processing/biaxial_residuals.mat','iter_reg','iter_img','iterations');
         
         if(mod(iterct_level,500)==0)
-            filename_vtk = sprintf('post_processing/evolve_biaxial_local_%d.vtk',iterct);
+            filename_vtk = sprintf('post_processing/evolve_biaxial_%d.vtk',iterct);
             vtkwrite(filename_vtk, 'structured_grid',pyy,pxx,pzz,'scalars','StrainEnergy',strain_energy,'scalars','J',Jdet,'scalars','F11',F11,'scalars','F22',F22,'scalars','F33',F33);
             param.alpha = param.alpha*2;
             %timestep1 = timestep/3;
@@ -424,16 +326,8 @@ for multilev = 0:1:param.maxlevel-1
             filename = sprintf('post_processing/Biaxial_mesh_%d.vtk',multilev+1);
             PlotGrid(filename,ActiveNodes,Node,pxx,pyy,pzz,Em,ac_ct,ac);
         end
-        
-        %         if(mod(iterct_level,level_i)==0)
-        %             timestep1 = timestep/(3);
-        %             timestep = max(5e-5,timestep1);
-        %             level_i = level_i*1.5;
-        %         end
     end
-    
-    
-    
+
     %the centroids of the B-spline grid
     cell_co = zeros(ac_ct,3);
     for i = 1:ac_ct
@@ -442,14 +336,8 @@ for multilev = 0:1:param.maxlevel-1
         cell_co(i,:) = Em(cell_le).cell_centre(cell_id,:);
     end
     
-    %compute the absolute difference between the pair of images at centroid
-    %of elements
-    % AdrianQ: I think this is not correct now that I changed your code
-    % above for the Img_source and Img_target
     [CellGrad, meanGrad] = computeDiffGradImage(cell_co,Img_source,Img_target_reparameterized_at_pixels, pixX, pixY, pixZ);
     fprintf('Mean Gradient = %f\n',meanGrad);
     filename_vtk1 = sprintf('post_processing/biaxial_deformed_%d.vtk',multilev+1);
     vtkwrite(filename_vtk1, 'structured_grid',pyy,pxx,pzz,'scalars','Intensity',Img_source);
-    
-    
 end

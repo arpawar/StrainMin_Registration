@@ -18,10 +18,10 @@ alpha = [1,2,2,3,2];
 load theta_embryo.mat;
 
 theta_g_embryo = theta_g;
-theta_g_embryo1 = [theta_g_embryo(1);theta_g_embryo(5);theta_g_embryo(9);theta_g_embryo(13);theta_g_embryo(17);theta_g_embryo(20)];
+theta_g_embryo1 = [theta_g_embryo(1);theta_g_embryo(5);theta_g_embryo(9);theta_g_embryo(13);theta_g_embryo(17)];
 disp('Reading image data...');
-numberIndex = [240;299;359;419;479;524];
-myVars = {'Embryo240','Embryo299','Embryo359','Embryo419','Embryo479','Embryo524'};
+numberIndex = [240;299;359;419;479];
+myVars = {'Embryo240','Embryo299','Embryo359','Embryo419','Embryo479'};
 
 %% 1: Read image data
 %Enter file name here
@@ -58,7 +58,7 @@ load 'thetag_result_4.mat'
 vars = {'theta_plot_avg', 'theta_plot_max','theta_plot_center'};
 clear(vars{:})
 
-for nsteps = 5:5
+for nsteps = 1:1
     
     fprintf('Nsteps = %i\n',nsteps);
     
@@ -182,11 +182,7 @@ for nsteps = 5:5
         for i=1:size(ActiveNodes,1)
             Node(ActiveNodes(i,1),4) = i;
         end
-        
-        %         if(updateFlag==1)
-        %             [ACP, Pm, Node] = updateControlPoints(ACP, Pm, pxx, pyy, pzz,bf, bf_ct,Node, ActiveNodes);
-        %         end
-        
+
         %store the initial RHS value in RHS_init
         RHS_init = RHS;
         
@@ -272,19 +268,12 @@ for nsteps = 5:5
             [BIGXX,BIGYY,BIGZZ,BIGMUX,BIGMUY,BIGMUZ,BIGMVX,BIGMVY,BIGMVZ,BIGMWX,BIGMWY,BIGMWZ] = computenewPoints_mex(Jm,ACP,PHI1,PHIU1,PHIV1,PHIW1,orderGauss);
             
             % interpolate the intensity and grdient at f(x) at the deformed positions of the gauss points
-            
-            % AdrianQ: interpolating the target image function at the deformed
-            % points T(Y)
             cII_TY = interp3(pixY, pixX, pixZ, Img_target, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
-            
-            % AdrianQ: interpolating the gradient of the target at Y
+
             cDII_TY_X = interp3(pixY, pixX, pixZ, DIITX,BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
             cDII_TY_Y = interp3(pixY, pixX, pixZ, DIITY, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
             cDII_TY_Z = interp3(pixY, pixX, pixZ, DIITZ, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
-            
-            % denominator of the fidelity term (g(x))
-            %denominate = sqrt((cDII_TY_X.^2) + (cDII_TY_Y.^2) + (cDII_TY_Z.^2)+ smallNumber); %g(x)
-            
+
             % fidelity term in x, y, z directions
             Bterm1 = (cII_TY - cII_SX).*2.*cDII_TY_Y; %./denominate;
             Bterm2 = (cII_TY - cII_SX).*2.*cDII_TY_X; %./denominate;
@@ -295,7 +284,6 @@ for nsteps = 5:5
             
             % Now compute the integrals for each basis function in the support of the active cell.
             if(mod(iterct_level,itermax)==0 && multilev == (param.maxlevel-1))
-                %theta_g_old_1 = theta_g_new;
                 [RHS, RHS_image, RHS_reg, LRHS_reg, RHS_total, final_error, theta_g_new] = compute_Integ_Domain_hyper_elastic_growth_projection_1_mex(Jm,img_error,Bterm1,Bterm2,Bterm3,BIGXX,BIGYY,BIGZZ,BIGMUX,BIGMUY,BIGMUZ,BIGMVX,BIGMVY,BIGMVZ,BIGMWX,BIGMWY,BIGMWZ,RHS,PHI1,PHIU1,PHIV1,PHIW1,param.mu, param.lambda, param.alpha, param.beta,2.5, Wu,Wv,Ww,H,cII_SX,kappa,dtime,theta_g_old);
                 clear Mass_matrix;
             else
@@ -381,13 +369,10 @@ for nsteps = 5:5
         %of elements
         [CellGrad, meanGrad] = computeDiffGradImage(cell_co,Img_source,Img_target, pixX, pixY, pixZ);
         fprintf('Mean Gradient = %f\n',meanGrad);
-        
-        %updateFlag=0;
     end
     
     itermax = itermax+250;
-    %updateFlag=1;
-    
+
     filename_vtk1 = sprintf('post_processing/embryo_growth_deformed_%d.vtk',nsteps);
     vtkwrite(filename_vtk1, 'structured_grid',pyy,pxx,pzz,'scalars','Intensity',Img_source);
     

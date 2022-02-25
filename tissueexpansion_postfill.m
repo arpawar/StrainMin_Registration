@@ -72,16 +72,7 @@ for nsteps = 1:1
     
     Img_source1 = (Img_source1-min(Img_source1(:)))/(max(Img_source1(:))-min(Img_source1(:)));
     Img_target1 = (Img_target1-min(Img_target1(:)))/(max(Img_target1(:))-min(Img_target1(:)));
-    %
-    %     img1 = zeros(Nx,Ny,Nz);
-    %     img2 = zeros(Nx,Ny,Nz);
-    %
-    %     img1(Img_source>0.5) = 1.0;
-    %     Img_source = img1;
-    %
-    %     img2(Img_target>0.5) = 1.0;
-    %     Img_target = img2;
-    %
+
     Img_source = Img_source1;
     Img_target = Img_target1;
     
@@ -96,8 +87,7 @@ for nsteps = 1:1
     RS_initial = 1;
     disp(sprintf('initial residual %f\n',residual_initial));
     disp(sprintf('initial RS value %f\n',RS_initial));
-    
-    
+
     param = setparameters_skin(3,alpha(nsteps));
     
     filename1 = sprintf('post_processing/source_%d.vtk',nsteps);
@@ -256,19 +246,12 @@ for nsteps = 1:1
             [BIGXX,BIGYY,BIGZZ,BIGMUX,BIGMUY,BIGMUZ,BIGMVX,BIGMVY,BIGMVZ,BIGMWX,BIGMWY,BIGMWZ] = computenewPoints_mex(Jm,ACP,PHI1,PHIU1,PHIV1,PHIW1,orderGauss);
             
             % interpolate the intensity and grdient at f(x) at the deformed positions of the gauss points
-            
-            % AdrianQ: interpolating the target image function at the deformed
-            % points T(Y)
             cII_TY = interp3(pixY, pixX, pixZ, Img_target, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
             
-            % AdrianQ: interpolating the gradient of the target at Y
             cDII_TY_X = interp3(pixY, pixX, pixZ, DIITX,BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
             cDII_TY_Y = interp3(pixY, pixX, pixZ, DIITY, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
             cDII_TY_Z = interp3(pixY, pixX, pixZ, DIITZ, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
-            
-            % denominator of the fidelity term (g(x))
-            %denominate = sqrt((cDII_TY_X.^2) + (cDII_TY_Y.^2) + (cDII_TY_Z.^2)+ smallNumber); %g(x)
-            
+
             % fidelity term in x, y, z directions
             Bterm1 = (cII_TY - cII_SX).*2.*cDII_TY_Y; %./denominate;
             Bterm2 = (cII_TY - cII_SX).*2.*cDII_TY_X; %./denominate;
@@ -304,15 +287,13 @@ for nsteps = 1:1
                 Pmlevel(index,:) = ACP(ilevel,1:3);
                 Pm(level_b).pts = Pmlevel;
             end
-            
-            
+
             disp(sprintf('Iteration = %d, residual = %f, hyperelastic = %f',iterct_level, final_error,norm_reg));
             rs(iterct,1) = final_error;
             iter_reg(iterct,1) = norm_reg;
             iter_img(iterct,1) = norm_img;
             iterations(iterct,1) = iterct;
-            
-            
+
             subplot(1,3,1)
             plot(iterations, rs);
             subplot(1,3,2)

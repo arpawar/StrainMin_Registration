@@ -1,4 +1,4 @@
-function [pxx, pyy, pzz,F11, F22, F33, Jdet, strain_energy, theta_g_final,theta_e_final] = tripleIterLoop_growth2(sizeImage, Pixel, Jm, ACP, Img_source,mu, lambda, theta_g_cp)
+function [pxx, pyy, pzz,F11, F22, F33, Jdet, strain_energy, theta_g_final] = tripleIterLoop_growth2(sizeImage, Pixel, Jm, ACP, Img_source,mu, lambda, theta_g_m)
 %In this function we compute the new positions of the pixel coordinates
 %using the spatial transformation function
 
@@ -24,11 +24,10 @@ F33 = zeros(sizeImage(1,1),sizeImage(1,2),sizeImage(1,3));
 Jdet = zeros(sizeImage(1,1),sizeImage(1,2),sizeImage(1,3));
 strain_energy = zeros(sizeImage(1,1),sizeImage(1,2),sizeImage(1,3));
 theta_g_final = zeros(sizeImage(1,1),sizeImage(1,2),sizeImage(1,3));
-theta_e_final = zeros(sizeImage(1,1),sizeImage(1,2),sizeImage(1,3));
 
 parfor i = 1:sizeImage(1,3)
     
-    [temp_pxx, temp_pyy, temp_pzz ,temp_F11, temp_F22, temp_F33, temp_Jdet, temp_strain_energy, temp_theta, temp_theta_e] = tripleIterLoopBody_growth2(i, sizeImage, Pixel, Jm, ACP, Img_source(:,:,i),mu, lambda, theta_g_cp);
+    [temp_pxx, temp_pyy, temp_pzz ,temp_F11, temp_F22, temp_F33, temp_Jdet, temp_strain_energy, temp_theta] = tripleIterLoopBody_growth2(i, sizeImage, Pixel, Jm, ACP, Img_source(:,:,i),mu, lambda, theta_g_m);
     
     pxx(:,:,i) = temp_pxx;
     pyy(:,:,i) = temp_pyy;
@@ -41,12 +40,11 @@ parfor i = 1:sizeImage(1,3)
     Jdet(:,:,i) = temp_Jdet;
     strain_energy(:,:,i) = temp_strain_energy;
     theta_g_final(:,:,i) = temp_theta;
-    theta_e_final(:,:,i) = temp_theta_e;
 end
 
 end
 
-function [ pxx, pyy, pzz, F11, F22, F33, Jdet, strain_energy, theta_g, theta_e] = tripleIterLoopBody_growth2(i, sizeImage, Pixel, Jm, ACP, Img_source,mu,lambda, theta_g_cp)
+function [ pxx, pyy, pzz, F11, F22, F33, Jdet, strain_energy, theta_g] = tripleIterLoopBody_growth2(i, sizeImage, Pixel, Jm, ACP, Img_source,mu,lambda, theta_g_m)
 
 pxx = zeros(sizeImage(1,1),sizeImage(1,2));
 pyy = zeros(sizeImage(1,1),sizeImage(1,2));
@@ -71,7 +69,6 @@ F33 = zeros(sizeImage(1,1),sizeImage(1,2));
 Jdet = zeros(sizeImage(1,1),sizeImage(1,2));
 strain_energy = zeros(sizeImage(1,1),sizeImage(1,2));
 theta_g = zeros(sizeImage(1,1),sizeImage(1,2));
-theta_e = zeros(sizeImage(1,1),sizeImage(1,2));
 
 for j = 1:sizeImage(1,2)
     for k = 1:sizeImage(1,1)
@@ -93,8 +90,7 @@ for j = 1:sizeImage(1,2)
         
         %control points over the active element
         pts = ACP(SB,1:3);
-        theta_cp = theta_g_cp(SB,1);
-        
+
         %compute the new position of the pixel coordinates
         FXX = pts'*supp;
         FXX_u = pts(:,1)'*supp_u;
@@ -136,11 +132,9 @@ for j = 1:sizeImage(1,2)
             B = F*transpose(F);
             Jdet(k,j) = det(F);
             strain_energy(k,j) = (mu/2)*(trace(B)-3)-mu*log(Jdet(k,j))+lambda/2*log(Jdet(k,j))^2;
-            theta_g(k,j) = theta_cp'*supp;
-            theta_e(k,j) = Jdet(k,j)/theta_g(k,j);
+            theta_g(k,j) = theta_g_m;
         else
             theta_g(k,j) = 1;
-            theta_e(k,j) = Jdet(k,j);
         end
     end
 end

@@ -2,7 +2,7 @@ clc;
 clear all;
 close all;
 
-diary skin1A_prefill_presac_growth.text
+diary prefill_presac_growth.text
 
 disp('Added paths....');
 %add the paths of subfolders of the software
@@ -97,8 +97,7 @@ for nsteps = 2:2
     RS_initial = 1;
     disp(sprintf('initial residual %f\n',residual_initial));
     disp(sprintf('initial RS value %f\n',RS_initial));
-    
-    
+
     param = setparameters_skin(3,alpha(nsteps));
     
     filename1 = sprintf('post_processing/source_%d.vtk',nsteps);
@@ -269,12 +268,8 @@ for nsteps = 2:2
             [BIGXX,BIGYY,BIGZZ,BIGMUX,BIGMUY,BIGMUZ,BIGMVX,BIGMVY,BIGMVZ,BIGMWX,BIGMWY,BIGMWZ] = computenewPoints_mex(Jm,ACP,PHI1,PHIU1,PHIV1,PHIW1,orderGauss);
             
             % interpolate the intensity and grdient at f(x) at the deformed positions of the gauss points
-            
-            % AdrianQ: interpolating the target image function at the deformed
-            % points T(Y)
             cII_TY = interp3(pixY, pixX, pixZ, Img_target, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
             
-            % AdrianQ: interpolating the gradient of the target at Y
             cDII_TY_X = interp3(pixY, pixX, pixZ, DIITX,BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
             cDII_TY_Y = interp3(pixY, pixX, pixZ, DIITY, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
             cDII_TY_Z = interp3(pixY, pixX, pixZ, DIITZ, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));

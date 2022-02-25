@@ -58,7 +58,7 @@ for nsteps = 1:5
     sphere_2x_img = zeros(Nx,Ny,Nz);
     
     radius1 = 10;
-    radius2 = 16;
+    radius2 = 15;
     
     %Image size
     sizeImage = size(sphere_img);
@@ -248,12 +248,8 @@ for nsteps = 1:5
             [BIGXX,BIGYY,BIGZZ,BIGMUX,BIGMUY,BIGMUZ,BIGMVX,BIGMVY,BIGMVZ,BIGMWX,BIGMWY,BIGMWZ] = computenewPoints_mex(Jm,ACP,PHI1,PHIU1,PHIV1,PHIW1,orderGauss);
             
             % interpolate the intensity and grdient at f(x) at the deformed positions of the gauss points
-            
-            % AdrianQ: interpolating the target image function at the deformed
-            % points T(Y)
             cII_TY = interp3(pixY, pixX, pixZ, Img_target, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
-            
-            % AdrianQ: interpolating the gradient of the target at Y
+
             cDII_TY_X = interp3(pixY, pixX, pixZ, DIITX,BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
             cDII_TY_Y = interp3(pixY, pixX, pixZ, DIITY, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
             cDII_TY_Z = interp3(pixY, pixX, pixZ, DIITZ, BIGYY, BIGXX, BIGZZ,'*linear',min(Img_target(:)));
@@ -334,14 +330,7 @@ for nsteps = 1:5
                 total_theta_center(nsteps,1) = Jdet(25,25,25);
                 theta_g_center(nsteps,1) = theta_g(25,25,25);
                 theta_e_center(nsteps,1) = theta_e(25,25,25);
-                %
-                %             theta_plot_avg(iterct,1) = mean(theta_g_new(:));
-                %             theta_plot_max(iterct,1) = max(theta_g_new(:));
-                %             theta_plot_avg_p(iterct,1) = mean(theta_g(:));
-                %             theta_plot_max_p(iterct,1) = max(theta_g(:));
-                %             temp_theta = theta_g_new(786,:,:,:);
-                %             theta_plot_center(iterct,1) = mean(temp_theta(:));
-                
+
                 subplot(3,2,1)
                 plot(iterations, rs);
                 subplot(3,2,2)
@@ -352,18 +341,12 @@ for nsteps = 1:5
                 plot(iterations,theta_g_center);
                 subplot(3,2,5)
                 plot(iterations,theta_e_center);
-                %             subplot(4,2,6)
-                %             plot(iterations,theta_plot_max_p);
-                %             subplot(4,2,7)
-                %             plot(iterations,theta_plot_center);
                 drawnow
                 save('post_processing/sphere_growth_residuals.mat','iter_reg','iter_img','iterations');
                 save('post_processing/theta_plots.mat','theta_g_new','theta_g','total_theta_center','theta_g_center','theta_e_center'); 
             end    
         end
-        
-        %save('post_processing/theta_plots.mat','theta_g_new','theta_plot_avg','theta_plot_max','theta_plot_center','theta_plot_avg_p','theta_plot_max_p','theta_g','total_theta_center','theta_g_center','theta_e_center');
-        
+
         %the centroids of the B-spline grid
         cell_co = zeros(ac_ct,3);
         for i = 1:ac_ct
